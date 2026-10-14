@@ -7,6 +7,8 @@ import helpdesk.service.NotificationService;
 import helpdesk.service.ConsoleNotificationService;
 import helpdesk.service.TicketService;
 import helpdesk.repository.TicketRepository;
+import helpdesk.model.TicketPriority;
+import helpdesk.model.TicketStatus;
 
 public class Main {
     public static void main(String[] args) {
@@ -34,14 +36,15 @@ public class Main {
         Ticket ticket = new Ticket(
                 1,
                 "Не работает Wi-Fi",
-                "Нет подключения к беспроводной сети"
+                "Нет подключения к беспроводной сети",
+                TicketPriority.HIGH
         );
 
         System.out.println(
                 "Заявка #" + ticket.getId() + ": "
                         + ticket.getTitle() + " | " + ticket.getStatus()
         );
-
+        System.out.println(ticket);
         TicketService ticketService = new TicketService(notificationService);
         ticketService.startTicket(ticket);
 
@@ -69,5 +72,27 @@ public class Main {
             );
         }
 
+
+
+        Ticket testTicket = new Ticket(
+                3,
+                "Проверка отмены",
+                "Тестирование статуса"
+        );
+
+        testTicket.startProcessing();
+        testTicket.resolve();
+        testTicket.close();
+        testTicket.cancel();
+
+        System.out.println("Статус после попытки отмены: " + testTicket.getStatus());
+
+        System.out.println("Новые заявки:");
+
+        for (Ticket t : repository.findByStatus(TicketStatus.NEW)) {
+            System.out.println(t);
+        }
     }
+
+
 }

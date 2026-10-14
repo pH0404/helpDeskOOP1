@@ -3,6 +3,7 @@ package helpdesk.repository;
 import helpdesk.model.Ticket;
 import java.util.ArrayList;
 import java.util.List;
+import helpdesk.model.TicketStatus;
 
 public class TicketRepository {
     private final List<Ticket> tickets = new ArrayList<>();
@@ -12,6 +13,17 @@ public class TicketRepository {
 
     public List<Ticket> findAll() {
         return new ArrayList<>(tickets);
+    }
+    public List<Ticket> findByStatus(TicketStatus status) {
+        List<Ticket> result = new ArrayList<>();
+
+        for (Ticket ticket : tickets) {
+            if (ticket.getStatus() == status) {
+                result.add(ticket);
+            }
+        }
+
+        return result;
     }
 
 }
