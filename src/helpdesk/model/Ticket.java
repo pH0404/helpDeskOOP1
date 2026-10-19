@@ -1,6 +1,8 @@
 package helpdesk.model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Ticket {
     private final long id;
@@ -9,6 +11,7 @@ public class Ticket {
     private TicketStatus status;
     private final TicketPriority priority;
     private final LocalDateTime createdAt;
+    private final List<StatusHistoryEntry> statusHistory = new ArrayList<>();
 
     public Ticket(long id, String title, String description) {
         this(id, title, description, TicketPriority.MEDIUM);
@@ -62,6 +65,21 @@ public class Ticket {
         return createdAt;
     }
 
+    public List<StatusHistoryEntry> getStatusHistory() {
+        return List.copyOf(statusHistory);
+    }
+
+    private void changeStatus(TicketStatus newStatus) {
+        TicketStatus oldStatus = status;
+        status = newStatus;
+
+        statusHistory.add(new StatusHistoryEntry(
+                oldStatus,
+                newStatus,
+                LocalDateTime.now()
+        ));
+    }
+
     public void startProcessing() {
         if (status != TicketStatus.NEW) {
             System.out.println(
@@ -70,47 +88,43 @@ public class Ticket {
             return;
         }
 
-        status = TicketStatus.IN_PROGRESS;
+        changeStatus(TicketStatus.IN_PROGRESS);
     }
 
     public void resolve() {
         if (status != TicketStatus.IN_PROGRESS) {
-            System.out.println(
-                    "Ошибка: решить можно только заявку в работе"
+            throw new InvalidTicketStateException(
+                    "Решить можно только заявку в работе"
             );
-            return;
         }
 
-        status = TicketStatus.RESOLVED;
+        changeStatus(TicketStatus.RESOLVED);
     }
 
     public void close() {
         if (status != TicketStatus.RESOLVED) {
-            System.out.println(
-                    "Ошибка: закрыть можно только решённую заявку"
+            throw new InvalidTicketStateException(
+                    "Закрыть можно только решённую заявку"
             );
-            return;
         }
 
-        status = TicketStatus.CLOSED;
+        changeStatus(TicketStatus.CLOSED);
     }
 
     public void cancel() {
         if (status == TicketStatus.CLOSED) {
-            System.out.println(
-                    "Ошибка: нельзя отменить закрытую заявку"
+            throw new InvalidTicketStateException(
+                    "Нельзя отменить закрытую заявку"
             );
-            return;
         }
 
         if (status == TicketStatus.CANCELLED) {
-            System.out.println(
-                    "Ошибка: заявка уже отменена"
+            throw new InvalidTicketStateException(
+                    "Заявка уже отменена"
             );
-            return;
         }
 
-        status = TicketStatus.CANCELLED;
+        changeStatus(TicketStatus.CANCELLED);
     }
 
     @Override

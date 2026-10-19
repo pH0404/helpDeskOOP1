@@ -4,6 +4,7 @@ import helpdesk.model.Ticket;
 import java.util.ArrayList;
 import java.util.List;
 import helpdesk.model.TicketStatus;
+import helpdesk.model.TicketNotFoundException;
 
 public class TicketRepository {
     private final List<Ticket> tickets = new ArrayList<>();
@@ -24,6 +25,18 @@ public class TicketRepository {
         }
 
         return result;
+    }
+
+    public Ticket findById(long id) {
+        for (Ticket ticket : tickets) {
+            if (ticket.getId() == id) {
+                return ticket;
+            }
+        }
+
+        throw new TicketNotFoundException(
+                "Заявка с ID " + id + " не найдена"
+        );
     }
 
 }

@@ -9,6 +9,10 @@ import helpdesk.service.TicketService;
 import helpdesk.repository.TicketRepository;
 import helpdesk.model.TicketPriority;
 import helpdesk.model.TicketStatus;
+import helpdesk.service.TelegramNotificationService;
+import helpdesk.model.StatusHistoryEntry;
+import helpdesk.model.InvalidTicketStateException;
+import helpdesk.model.TicketNotFoundException;
 
 public class Main {
     public static void main(String[] args) {
@@ -32,7 +36,8 @@ public class Main {
         TicketRepository repository = new TicketRepository();
 
         NotificationService notificationService =
-                new ConsoleNotificationService();
+                new TelegramNotificationService();
+
         Ticket ticket = new Ticket(
                 1,
                 "Не работает Wi-Fi",
@@ -45,17 +50,24 @@ public class Main {
                         + ticket.getTitle() + " | " + ticket.getStatus()
         );
         System.out.println(ticket);
-        TicketService ticketService = new TicketService(notificationService);
-        ticketService.startTicket(ticket);
+        TicketService ticketService =
+                new TicketService(notificationService, repository);
+        ticketService.startTicket(agent, ticket);
 
 
         System.out.println("Статус: " + ticket.getStatus());
-        ticketService.resolveTicket(ticket);
+        ticketService.resolveTicket(agent, ticket);
         System.out.println("Статус: " + ticket.getStatus());
 
 
-        ticketService.closeTicket(ticket);
+        ticketService.closeTicket(agent, ticket);
         System.out.println("Статус: " + ticket.getStatus());
+
+        System.out.println("История статусов:");
+
+        for (StatusHistoryEntry entry : ticket.getStatusHistory()) {
+            System.out.println(entry);
+        }
 
         repository.add(ticket);
         repository.add(new Ticket(
@@ -64,12 +76,49 @@ public class Main {
                 "При запуске появляется ошибка"
         ));
 
+        System.out.println("Поиск заявки с ID 1:");
+        System.out.println(ticketService.getTicketById(1));
+
+        try {
+            ticketService.getTicketById(999);
+        } catch (TicketNotFoundException e) {
+            System.out.println("Ошибка поиска: " + e.getMessage());
+        }
+
         System.out.println("Полный список заявок:");
         for (Ticket t : repository.findAll()) {
             System.out.println(
                     "Заявка #" + t.getId() + ": "
                             + t.getTitle() + " | " + t.getStatus()
             );
+        }
+
+        System.out.println("Статистика по статусам:");
+
+        for (TicketStatus status : TicketStatus.values()) {
+            int count = 0;
+
+            for (Ticket t : repository.findAll()) {
+                if (t.getStatus() == status) {
+                    count++;
+                }
+            }
+
+            System.out.println(status + ": " + count);
+        }
+
+        System.out.println("Статистика по приоритетам:");
+
+        for (TicketPriority priority : TicketPriority.values()) {
+            int count = 0;
+
+            for (Ticket t : repository.findAll()) {
+                if (t.getPriority() == priority) {
+                    count++;
+                }
+            }
+
+            System.out.println(priority + ": " + count);
         }
 
 
@@ -83,7 +132,11 @@ public class Main {
         testTicket.startProcessing();
         testTicket.resolve();
         testTicket.close();
-        testTicket.cancel();
+        try {
+            ticket.cancel();
+        } catch (InvalidTicketStateException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
 
         System.out.println("Статус после попытки отмены: " + testTicket.getStatus());
 
@@ -92,6 +145,23 @@ public class Main {
         for (Ticket t : repository.findByStatus(TicketStatus.NEW)) {
             System.out.println(t);
         }
+
+        Ticket accessTestTicket = new Ticket(
+                4,
+                "Проверка доступа",
+                "Клиент пытается начать обработку"
+        );
+
+        try {
+            ticketService.startTicket(customer, accessTestTicket);
+        } catch (SecurityException e) {
+            System.out.println("Доступ запрещён: " + e.getMessage());
+        }
+
+        System.out.println(
+                "Статус после попытки клиента: "
+                        + accessTestTicket.getStatus()
+        );
     }
 
 
