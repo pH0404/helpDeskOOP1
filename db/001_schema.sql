@@ -1,3 +1,4 @@
+
 CREATE TYPE user_role AS ENUM (
     'CUSTOMER',
     'SUPPORT_AGENT',
