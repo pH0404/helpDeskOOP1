@@ -13,6 +13,11 @@ import helpdesk.service.TelegramNotificationService;
 import helpdesk.model.StatusHistoryEntry;
 import helpdesk.model.InvalidTicketStateException;
 import helpdesk.model.TicketNotFoundException;
+import helpdesk.repository.jdbc.JdbcTicketRepository;
+import helpdesk.model.TicketComment;
+import helpdesk.repository.TicketCommentRepository;
+import helpdesk.repository.jdbc.JdbcTicketCommentRepository;
+import helpdesk.model.TicketDetails;
 
 public class Main {
     public static void main(String[] args) {
@@ -26,17 +31,19 @@ public class Main {
 
         SupportAgent agent = new SupportAgent(
                 2,
-                "Сергей Иванов",
-                "sergey@xxx.ru"
+                "Иван Соколов",
+                "ivan.support@xxx.ru"
         );
 
         System.out.println("Клиент: " + customer.getName());
         System.out.println("Специалист: " + agent.getName());
 
-        TicketRepository repository = new TicketRepository();
+        TicketRepository repository = new JdbcTicketRepository();
 
         NotificationService notificationService =
                 new TelegramNotificationService();
+        TicketService ticketService =
+                new TicketService(notificationService, repository);
 
         Ticket ticket = new Ticket(
                 1,
@@ -44,14 +51,47 @@ public class Main {
                 "Нет подключения к беспроводной сети",
                 TicketPriority.HIGH
         );
+        ticket = ticketService.createTicket(customer, ticket);
+        TicketCommentRepository commentRepository =
+                new JdbcTicketCommentRepository();
+
+        TicketComment comment = new TicketComment(
+                ticket.getId(),
+                customer.getId(),
+                "Проверка комментария клиента",
+                false
+        );
+
+        comment = commentRepository.save(comment);
+
+        System.out.println(
+                "Сохранён комментарий #" + comment.getId()
+                        + ": " + comment.getText()
+        );
+
+        System.out.println("Комментарии заявки:");
+
+        for (TicketComment savedComment :
+                commentRepository.findByTicketId(ticket.getId())) {
+            System.out.println(
+                    "#" + savedComment.getId()
+                            + " | Автор ID: " + savedComment.getAuthorId()
+                            + " | Внутренний: " + savedComment.isInternal()
+                            + " | " + savedComment.getText()
+            );
+        }
+        ticketService.assignTicket(agent, ticket, agent);
+
+        System.out.println(
+                "На заявку назначен специалист: " + agent.getName()
+        );
 
         System.out.println(
                 "Заявка #" + ticket.getId() + ": "
                         + ticket.getTitle() + " | " + ticket.getStatus()
         );
         System.out.println(ticket);
-        TicketService ticketService =
-                new TicketService(notificationService, repository);
+
         ticketService.startTicket(agent, ticket);
 
 
@@ -63,21 +103,24 @@ public class Main {
         ticketService.closeTicket(agent, ticket);
         System.out.println("Статус: " + ticket.getStatus());
 
-        System.out.println("История статусов:");
 
-        for (StatusHistoryEntry entry : ticket.getStatusHistory()) {
+        System.out.println("История статусов из DB:");
+
+        for (StatusHistoryEntry entry :
+                repository.findStatusHistoryByTicketId(ticket.getId())) {
             System.out.println(entry);
         }
 
-        repository.add(ticket);
-        repository.add(new Ticket(
+        Ticket secondTicket = new Ticket(
                 2,
                 "Не запускается приложение",
                 "При запуске появляется ошибка"
-        ));
+        );
 
-        System.out.println("Поиск заявки с ID 1:");
-        System.out.println(ticketService.getTicketById(1));
+        secondTicket = ticketService.createTicket(customer, secondTicket);
+
+        System.out.println("Поиск заявки с ID " + ticket.getId() + ":");
+        System.out.println(ticketService.getTicketById(ticket.getId()));
 
         try {
             ticketService.getTicketById(999);
@@ -92,6 +135,13 @@ public class Main {
                             + t.getTitle() + " | " + t.getStatus()
             );
         }
+
+        System.out.println("Заявки с подробной информацией (JOIN):");
+
+        for (TicketDetails details : repository.findAllWithDetails()) {
+            System.out.println(details);
+        }
+
 
         System.out.println("Статистика по статусам:");
 

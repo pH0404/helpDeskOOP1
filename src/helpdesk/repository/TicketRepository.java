@@ -1,42 +1,33 @@
 package helpdesk.repository;
 
 import helpdesk.model.Ticket;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import helpdesk.model.TicketStatus;
-import helpdesk.model.TicketNotFoundException;
+import helpdesk.model.TicketDetails;
+import helpdesk.model.StatusHistoryEntry;
+import helpdesk.model.AgentTicketStats;
 
-public class TicketRepository {
-    private final List<Ticket> tickets = new ArrayList<>();
-    public void add(Ticket ticket) {
-        tickets.add(ticket);
-    }
+public interface TicketRepository {
+    Ticket save(Ticket ticket);
 
-    public List<Ticket> findAll() {
-        return new ArrayList<>(tickets);
-    }
-    public List<Ticket> findByStatus(TicketStatus status) {
-        List<Ticket> result = new ArrayList<>();
+    Optional<Ticket> findById(long id);
+    List<Ticket> findAll();
+    List<Ticket> findPage(int page, int size);
+    List<Ticket> searchByText(String text);
+    List<TicketDetails> findAllWithDetails();
+    List<AgentTicketStats> findAgentTicketStats();
+    List<Ticket> findByStatus(TicketStatus status);
+    List<StatusHistoryEntry> findStatusHistoryByTicketId(long ticketId);
 
-        for (Ticket ticket : tickets) {
-            if (ticket.getStatus() == status) {
-                result.add(ticket);
-            }
-        }
+    void update(Ticket ticket);
+    void assignTicket(long ticketId, long assigneeId);
 
-        return result;
-    }
+    void changeStatus(
+            long ticketId,
+            TicketStatus newStatus,
+            Long changedById
+    );
 
-    public Ticket findById(long id) {
-        for (Ticket ticket : tickets) {
-            if (ticket.getId() == id) {
-                return ticket;
-            }
-        }
-
-        throw new TicketNotFoundException(
-                "Заявка с ID " + id + " не найдена"
-        );
-    }
-
+    boolean deleteById(long id);
 }

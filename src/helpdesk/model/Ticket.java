@@ -5,14 +5,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Ticket {
-    private final long id;
-    private final String title;
-    private final String description;
-    private TicketStatus status;
-    private final TicketPriority priority;
-    private final LocalDateTime createdAt;
+    private Long id;
+    private String title;
+    private String description;
+    private TicketStatus status = TicketStatus.NEW;
+    private TicketPriority priority = TicketPriority.MEDIUM;
+
+    private Long customerId;
+    private Long assigneeId;
+    private Long categoryId;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime closedAt;
+
     private final List<StatusHistoryEntry> statusHistory = new ArrayList<>();
 
+    public Ticket() {
+    }
     public Ticket(long id, String title, String description) {
         this(id, title, description, TicketPriority.MEDIUM);
     }
@@ -38,19 +48,34 @@ public class Ticket {
         this.description = description;
         this.priority = priority;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
         this.status = TicketStatus.NEW;
     }
 
-    public long getId() {
+    public Long getId() {
         return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getTitle() {
         return title;
     }
+    public void setTitle(String title) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Название заявки не может быть пустым"
+            );
+        }
+        this.title = title;
+    }
 
     public String getDescription() {
         return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public TicketStatus getStatus() {
@@ -64,6 +89,67 @@ public class Ticket {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+    public void setStatus(TicketStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException(
+                    "Статус заявки не может быть null"
+            );
+        }
+        this.status = status;
+    }
+
+    public void setPriority(TicketPriority priority) {
+        if (priority == null) {
+            throw new IllegalArgumentException(
+                    "Приоритет заявки не может быть null"
+            );
+        }
+        this.priority = priority;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
+    }
+
+    public Long getAssigneeId() {
+        return assigneeId;
+    }
+
+    public void setAssigneeId(Long assigneeId) {
+        this.assigneeId = assigneeId;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
+    }
+
+    public void setClosedAt(LocalDateTime closedAt) {
+        this.closedAt = closedAt;
+    }
 
     public List<StatusHistoryEntry> getStatusHistory() {
         return List.copyOf(statusHistory);
@@ -71,12 +157,18 @@ public class Ticket {
 
     private void changeStatus(TicketStatus newStatus) {
         TicketStatus oldStatus = status;
-        status = newStatus;
+        LocalDateTime now = LocalDateTime.now();
 
+        status = newStatus;
+        updatedAt = now;
+
+        if (newStatus == TicketStatus.CLOSED) {
+            closedAt = now;
+        }
         statusHistory.add(new StatusHistoryEntry(
                 oldStatus,
                 newStatus,
-                LocalDateTime.now()
+                now
         ));
     }
 

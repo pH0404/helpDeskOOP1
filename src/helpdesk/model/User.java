@@ -1,4 +1,3 @@
-
 package helpdesk.model;
 
 public abstract class User {
